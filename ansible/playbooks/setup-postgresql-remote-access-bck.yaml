@@ -1,0 +1,108 @@
+---
+- name: setup-postgresql-remote-access
+  hosts: postgresql
+  become: true
+  vars:
+    become: yes
+    postgresql_version: "15"
+    postgresql_bin_path: "/usr/lib/postgresql/{{ postgresql_version }}/bin"
+    postgresql_data_dir: "/var/lib/postgresql/{{ postgresql_version }}/main"
+    postgresql_conf_dir: "/etc/postgresql/{{ postgresql_version }}/main"
+    ansible_ssh_pipelining: true
+    
+  vars_prompt:
+    - name: db_user
+      prompt: Type db username
+      private: false
+    - name: db_password
+      prompt: Type db password
+      private: true
+      confirm: true
+
+  tasks:
+    - name: install-postgresql-packages
+      ansible.builtin.apt:
+        name:
+          - postgresql-{{ postgresql_version }}
+          - postgresql-contrib
+          - libpq-dev
+          - python3-psycopg2
+        state: present
+
+    - name: check-postgresql-initialized
+      ansible.builtin.stat:
+        path: "{{ postgresql_data_dir }}/pg_hba.conf"
+      register: postgres_data
+
+    - name: check-not-empty-dir
+      ansible.builtin.file:
+        path: "{{ postgresql_data_dir }}"
+        state: absent
+      when: not postgres_data.stat.exists
+
+    - name: initialize-postgresql
+      ansible.builtin.shell: "{{ postgresql_bin_path }}/initdb -D {{ postgresql_data_dir }}"
+      become_user: postgres
+      when: not postgres_data.stat.exists
+
+    - name: start-service-postgresql
+      ansible.builtin.shell: "systemctl stop postgresql"
+
+    - name: add-config-for-remote-access
+      blockinfile:
+        create: yes
+        dest: "{{ postgresql_conf_dir }}/postgresql.conf"
+        block: |
+          listen_addresses = '*'
+      become_user: postgres
+
+    - name: allow-md5-connection-for-db-user
+      postgresql_pg_hba:
+        dest: "{{ postgresql_conf_dir }}/pg_hba.conf"
+        contype: host
+        databases: all
+        method: md5
+        users: all
+        create: true
+        address: all
+      become_user: postgres
+      notify: restart-postgresql
+
+    #NOT WORK
+    # - name: start-postgresql-service
+    #   ansible.builtin.service:
+    #     name: postgresql
+    #     state: reloaded
+    #     enabled: yes
+    #   retries: 5
+    #   delay: 3
+    #   register: result
+    #   until: result is not failed
+    #   become: yes
+
+    # - name: test
+    #   ansible.builtin.systemd:
+    #     state: reloaded
+    #     name: postgresql
+    #   become: yes
+
+    - name: start-service-postgresql
+      ansible.builtin.shell: "systemctl start postgresql"
+
+    # - name: hold until Postgresql is up and running
+    #   wait_for:
+    #     host: "127.0.0.1"
+    #     port: 5432
+        
+    - name: create-db-user
+      postgresql_user:
+        state: present
+        name: "{{ db_user }}"
+        password: "{{ db_password }}"
+      become_user: postgres
+
+  handlers:
+    - name: restart-postgresql
+      ansible.builtin.service:
+        name: postgresql
+        state: restarted

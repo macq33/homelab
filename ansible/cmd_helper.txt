@@ -1,0 +1,6 @@
+ansible -i ./inventories/homelab/hosts.yaml postgresql -m ping --user example 
+
+ansible-playbook ./playbooks/apt.yaml --user example -i ./inventories/homelab/hosts.yaml
+
+single host:
+add ex. --limit 192.168.0.171
