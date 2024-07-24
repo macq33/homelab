@@ -1,6 +1,6 @@
 resource "proxmox_vm_qemu" "srv-docker-1-infra" {
   name = "srv-docker-1-infra"
-  desc = ""
+  desc = "docker host for infrastructure"
   vmid = "100"
   clone = "debian12-cloudinit"
 
@@ -8,10 +8,10 @@ resource "proxmox_vm_qemu" "srv-docker-1-infra" {
   cores = 2
   sockets = 1
 
-  ipconfig0 = "ip=192.168.1.100/24"
-  nameserver = "8.8.8.8"
+  #ipconfig0 = "ip=192.168.0.50/24,gw=192.168.0.1"
+  #nameserver = "8.8.8.8"
   
-  target_node = "proxmox"
+  target_node = "pve"
   agent = 1
   cpu = "host"
   os_type = "cloud_init"
@@ -31,7 +31,7 @@ resource "proxmox_vm_qemu" "srv-docker-1-infra" {
     scsi {
       scsi0 {
         disk {
-          size = 20
+          size = 30
           storage = "local-lvm"
         }
       }

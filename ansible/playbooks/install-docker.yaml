@@ -1,0 +1,69 @@
+
+- name: install-docker
+  become: yes
+  hosts: all
+  tasks:
+  - name: update-apt
+    ansible.builtin.apt:
+      name: "*"
+      state: latest
+      update_cache: yes
+      force_apt_get: yes
+
+  - name: install-packages-apt
+    ansible.builtin.apt:
+      name: "{{ dependencies }}"
+      force_apt_get: yes
+      state: latest
+      update_cache: yes
+    vars:
+      dependencies:
+      - git
+      - apt-transport-https
+      - ca-certificates
+      - wget
+      - software-properties-common
+      - gnupg2
+      - curl
+
+  - name: check-docker-key-exists
+    ansible.builtin.stat:
+      path: /etc/apt/keyrings/docker.gpg
+    register: docker_gpg
+
+  - name: create-apt-keyring-directory
+    ansible.builtin.file:
+      path: /etc/apt/keyrings
+      state: directory
+      mode: '0755'
+      owner: root
+      group: root
+
+  - name: download-docker-armored-signature
+    ansible.builtin.get_url:
+      url: https://download.docker.com/linux/debian/gpg
+      dest: /tmp/docker.asc
+    when: not docker_gpg.stat.exists
+
+  - name: dearmor-docker-asc
+    ansible.builtin.command: /usr/bin/gpg --dearmor -o /etc/apt/keyrings/docker.gpg /tmp/docker.asc
+    when: not docker_gpg.stat.exists
+
+  - name: add-docker-apt-repository
+    ansible.builtin.apt_repository:
+      repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable"
+      state: present
+      update_cache: yes
+      filename: docker
+
+# sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  - name: install-docker
+    ansible.builtin.apt:
+      state: latest
+      pkg:
+      - docker-ce
+      - docker-ce-cli
+      - docker-ce-rootless-extras
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin

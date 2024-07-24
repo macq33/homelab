@@ -1,7 +1,14 @@
-- name: ufw
+- name: install-ufw
   hosts: all
   become: yes
   tasks:
+    - name: update-apt-install-pkg
+      apt:
+        name:  
+          - ufw
+        state: latest
+        update_cache: true
+
     - name: ufw-enabled
       community.general.ufw:
         state: "enabled"
@@ -11,9 +18,9 @@
     - name: ufw-rules
       community.general.ufw:
         rule: "allow"
-        port: {{ item }}
+        port: "{{ item }}"  
         proto: "tcp"
-        with_items:
-          - "22"
-          - "80"
-          - "443"
+      with_items: 
+        - "22"
+        - "80"
+        - "443"
