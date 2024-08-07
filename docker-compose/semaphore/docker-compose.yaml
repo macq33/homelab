@@ -1,0 +1,66 @@
+version: "3"
+
+volumes:
+  semaphore-mysql:
+    driver: local
+
+networks:
+  proxy:
+    external: true
+
+services:
+  mysql:
+    image: docker.io/library/mysql:8.3
+    hostname: mysql
+    volumes:
+      - semaphore-mysql:/var/lib/mysql
+    networks:
+      - default
+    environment:
+      - MYSQL_RANDOM_ROOT_PASSWORD=yes
+      - MYSQL_DATABASE=semaphore
+      - MYSQL_USER=semaphore
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    restart: unless-stopped
+  semaphore:
+    container_name: ansiblesemaphore
+    image: docker.io/semaphoreui/semaphore:v2.10.22
+    ports:
+      - 3000:3000
+    environment:
+      TZ: Europe/Warsaw
+      SEMAPHORE_DB_USER: semaphore
+      SEMAPHORE_DB_PASS: ${SEMAPHORE_DB_PASS}
+      SEMAPHORE_DB_HOST: mysql
+      SEMAPHORE_DB_PORT: 3306
+      SEMAPHORE_DB_DIALECT: mysql
+      SEMAPHORE_DB: semaphore
+      SEMAPHORE_PLAYBOOK_PATH: /tmp/semaphore/
+      SEMAPHORE_ADMIN_PASSWORD: ${SEMAPHORE_ADMIN_PASSWORD}
+      SEMAPHORE_ADMIN_NAME: sensei
+      SEMAPHORE_ADMIN_EMAIL: sensei@localhost
+      SEMAPHORE_ADMIN: sensei
+      SEMAPHORE_ACCESS_KEY_ENCRYPTION: ${SEMAPHORE_ACCESS_KEY_ENCRYPTION}
+      ANSIBLE_HOST_KEY_CHECKING: false  # (optional) change to true if you want to enable host key checking
+    volumes:
+      - ./inventory/:/inventory:ro
+      - ./authorized-keys/:/authorized-keys:ro
+      - ./config/:/etc/semaphore:rw
+    restart: unless-stopped
+    depends_on:
+      - mysql
+    networks:
+      - proxy
+      - default
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.semaphore.entrypoints=http"
+      - "traefik.http.routers.semaphore.rule=Host(`semaphore.local.mkol.party`)"
+      - "traefik.http.middlewares.semaphore-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.semaphore.middlewares=semaphore-https-redirect"
+      - "traefik.http.routers.semaphore-secure.entrypoints=https"
+      - "traefik.http.routers.semaphore-secure.rule=Host(`semaphore.local.mkol.party`)"
+      - "traefik.http.routers.semaphore-secure.tls=true"
+      - "traefik.http.routers.semaphore-secure.service=semaphore"
+      - "traefik.http.services.semaphore.loadbalancer.server.port=3000"
+      - "traefik.docker.network=proxy"
