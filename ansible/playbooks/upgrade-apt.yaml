@@ -1,4 +1,4 @@
-- hosts: "{{ target_hosts | default('all') }}"
+- hosts: "{{ target_hosts | default('all') }}" #for semaphore
   become: yes
   tasks:
     - name: upgrade-apt

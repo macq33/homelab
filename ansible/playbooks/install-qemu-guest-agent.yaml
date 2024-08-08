@@ -1,5 +1,5 @@
 - name: install-qemu-quest-agent 
-  hosts: all
+  hosts: "{{ target_hosts | default('all') }}" #for semaphore
   become: true
   tasks:
     - name: install-qemu-guest-agent

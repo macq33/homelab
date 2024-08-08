@@ -36,3 +36,6 @@ Global options (use these before the subcommand, if any):
                 given subcommand.
   -help         Show this help output, or the help for a specified subcommand.
   -version      An alias for the "version" subcommand.
+
+  Targeting (example):
+    terraform apply -target proxmox_vm_qemu.srv-docker-2 
