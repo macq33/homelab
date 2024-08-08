@@ -3,3 +3,4 @@ all:
     docker:
       hosts:
         srv-docker-1-infra.local.mkol.party:
+        srv-docker-2.local.mkol.party:
