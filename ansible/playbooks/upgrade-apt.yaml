@@ -1,4 +1,4 @@
-- hosts: "*"
+- hosts: "{{ target_hosts | default('all') }}"
   become: yes
   tasks:
     - name: upgrade-apt
