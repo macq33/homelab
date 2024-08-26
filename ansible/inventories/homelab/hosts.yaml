@@ -1,6 +1,15 @@
 all:
   children:
+    core:
+      srv-devops-sandbox.local.mkol.party:
     docker:
       hosts:
         srv-docker-1-infra.local.mkol.party:
         srv-docker-2.local.mkol.party:
+    k8s:
+      hosts:
+        k8s-talos-cp-3.local.mkol.party:	
+        k8s-talos-cp-2.local.mkol.party:
+        k8s-talos-cp-1.local.mkol.party:         
+        k8s-talos-worker-2.local.mkol.party:
+        k8s-talos-worker-1.local.mkol.party:	
